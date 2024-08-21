@@ -1,4 +1,3 @@
-# yaml-language-server: $schema=https://github.com/jcchavezs/envoy-config-schema/releases/download/v1.21.0/v3_Bootstrap.json
 static_resources:
   listeners:
     - name: listener_0
@@ -25,38 +24,58 @@ static_resources:
                   virtual_hosts:
                     - name: ddn_route
                       domains: ["*"]
-                      routes:
-                        - match:
-                            safe_regex:
-                              regex: ^/[a-zA-Z0-9]+/[a-zA-Z0-9]+/.+
-                          route:
-                            host_rewrite_path_regex:
-                              pattern:
-                                regex: "^/([a-zA-Z0-9]+)/([a-zA-Z0-9]+)/.+$"
-                              substitution: \1-\2.envoyproxy.io
-                            cluster: service_envoyproxy_io
-                            regex_rewrite:
-                              pattern:
-                                regex: ^/([a-zA-Z0-9]+)/([a-zA-Z0-9]+)/(.+)
-                              substitution: /\3
-                        - match:
-                            safe_regex:
-                              regex: ^/[a-zA-Z0-9]+/.+
-                          route:
-                            host_rewrite_path_regex:
-                              pattern:
-                                regex: "^/([a-zA-Z0-9]+)/.+$"
-                              substitution: \1.envoyproxy.io
-                            cluster: service_envoyproxy_io
-                            regex_rewrite:
-                              pattern:
-                                regex: ^/([a-zA-Z0-9]+)/(.+)
-                              substitution: /\2
+                      matcher:
+                        matcher_tree:
+                          input:
+                            name: request-headers
+                            typed_config:
+                              "@type": type.googleapis.com/envoy.type.matcher.v3.HttpRequestHeaderMatchInput
+                              header_name: :path
+                          prefix_match_map:
+                            map:
+                              "/project-1/":
+                                action:
+                                  name: project-1-env
+                                  typed_config:
+                                    "@type": type.googleapis.com/envoy.config.route.v3.Route
+                                    match:
+                                      prefix: /
+                                    route:
+                                      cluster: service_envoyproxy_io
+                                    request_headers_to_add:
+                                      - header:
+                                          key: x-ddn-build-id
+                                          value: abcde
+                              "/project-1/abcd/":
+                                action:
+                                  name: project-1-abcd
+                                  typed_config:
+                                    "@type": type.googleapis.com/envoy.config.route.v3.Route
+                                    match:
+                                      prefix: /
+                                    route:
+                                      cluster: service_envoyproxy_io
+                                    request_headers_to_add:
+                                      - header:
+                                          key: x-ddn-build-id
+                                          value: abcd
+                              "/project-1/abcd3/":
+                                action:
+                                  name: project-1-abcde
+                                  typed_config:
+                                    "@type": type.googleapis.com/envoy.config.route.v3.Route
+                                    match:
+                                      prefix: /
+                                    route:
+                                      cluster: service_envoyproxy_io
+                                    request_headers_to_add:
+                                      - header:
+                                          key: x-ddn-build-id
+                                          value: abcd3
 
   clusters:
     - name: service_envoyproxy_io
       type: LOGICAL_DNS
-      # Comment out the following line to test on v6 networks
       dns_lookup_family: V4_ONLY
       load_assignment:
         cluster_name: service_envoyproxy_io

@@ -1,6 +1,6 @@
 services:
   envoy:
-    image: envoyproxy/envoy:dev-c8f58b61c36dbbd37d92f9826a90288136897df9
+    image: envoyproxy/envoy:v1.29.1
     ports:
       - "10000:10000"
     volumes:
